@@ -3,7 +3,7 @@ from groq import Groq
 
 # Initialize the Groq client with the API key from Streamlit secrets
 client = Groq(api_key="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")
-
+st.header("Chat with Bot!")
 # Set a default model for Groq
 if "groq_model" not in st.session_state:
     st.session_state["groq_model"] = "llama3-8b-8192"  # Adjust the model name if needed
