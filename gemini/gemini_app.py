@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # Initialize the Groq client with the API key from Streamlit secrets
-client = Groq(api_key=st.secrets["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"])
+client = Groq(api_key="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")
 
 # Set a default model for Groq
 if "groq_model" not in st.session_state:
