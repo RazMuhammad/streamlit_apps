@@ -55,7 +55,7 @@ for user_message, bot_message in st.session_state.history:
 
 # Form for user input
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("", max_chars=2000)
+    user_input = st.text_input("Enter your message:", max_chars=2000, label_visibility="collapsed")  # Providing a hidden label
     submit_button = st.form_submit_button("Send")
 
 if submit_button:
