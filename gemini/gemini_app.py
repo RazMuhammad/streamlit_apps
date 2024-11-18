@@ -8,7 +8,8 @@ st.title("✨ Simple ChatBot ✨")
 st.write("Powered by Google Generative AI")
 
 # Initialize the Generative Model
-api_key = "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"  
+api_key = "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"
+genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Function to get response from the model
@@ -16,18 +17,12 @@ def get_chatbot_response(user_input):
     response = model.generate_content(user_input)
     return response.text
 
-# Stream function to display assistant's response
+# Function to display assistant's response
 def display_assistant_response():
     with st.chat_message("assistant"):
-        stream = model.generate_stream(  # Assuming there's a stream function in the API you're using
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-        )
-        response = "".join([msg for msg in stream])  # Collect and join streamed response
-        st.write(response)  # Display response
+        # Get the assistant's response (non-streaming)
+        response = get_chatbot_response(st.session_state.messages[-1]["content"])
+        st.write(response)  # Display response in the chat
         return response
 
 # Main content area
