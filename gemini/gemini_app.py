@@ -1,88 +1,51 @@
 import streamlit as st
-import google.generativeai as genai
+from groq import Groq
 
-# Streamlit interface
-st.set_page_config(page_title="Simple ChatBot", layout="wide")
+# Initialize the Groq client with the API key from Streamlit secrets
+client = Groq(api_key=st.secrets["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"])
 
-st.title("✨ Simple ChatBot ✨")
-st.write("Powered by Google Generative AI")
+# Set a default model for Groq
+if "groq_model" not in st.session_state:
+    st.session_state["groq_model"] = "llama3-8b-8192"  # Adjust the model name if needed
 
-# Initialize the Generative Model
-api_key = "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"
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-# Function to get response from the model
-def get_chatbot_response(user_input):
-    response = model.generate_content(user_input)
-    return response.text
-
-# Function to display assistant's response
-def display_assistant_response():
-    with st.chat_message("assistant"):
-        # Get the assistant's response (non-streaming)
-        response = get_chatbot_response(st.session_state.messages[-1]["content"])
-        st.write(response)  # Display response in the chat
-        return response
-
-# Main content area
-st.header("Chat with the Bot")
-
+# Initialize chat history
 if "messages" not in st.session_state:
-    st.session_state["messages"] = []  # Initialize message history
+    st.session_state.messages = []
 
-# Display chat history after it's updated
+# Display chat messages from history on app rerun
 for message in st.session_state.messages:
-    role = message["role"]
-    content = message["content"]
-    
-    if role == "user":
-        st.markdown(f"""
-        <div style="
-            background-color: #800080; 
-            border-radius: 15px; 
-            padding: 10px 15px; 
-            margin: 5px 0; 
-            max-width: 70%; 
-            text-align: left; 
-            display: inline-block;
-        ">
-            <p style="margin: 0; font-size: 16px; line-height: 1.5;"><b>You:</b> {content} 😊</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    if role == "assistant":
-        st.markdown(f"""
-        <div style="
-            background-color: #808080; 
-            border-radius: 15px; 
-            padding: 10px 15px; 
-            margin: 5px 0; 
-            max-width: 70%; 
-            text-align: left; 
-            display: inline-block;
-        ">
-            <p style="margin: 0; font-size: 16px; line-height: 1.5;"><b>Bot:</b> {content} 🤖</p>
-        </div>
-        """, unsafe_allow_html=True)
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# Form for user input
-with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("Enter your message:", max_chars=2000, label_visibility="collapsed")
-    submit_button = st.form_submit_button("Send")
+# Accept user input
+if prompt := st.chat_input("What is up?"):
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-if submit_button:
-    if user_input:
-        # Add user's message to session state
-        st.session_state.messages.append({"role": "user", "content": user_input})
-        
-        # Display user's message immediately
-        st.chat_message("user").write(user_input)
-        
-        # Get and display assistant's response
-        response = display_assistant_response()
-        
-        # Add assistant's message to session state
-        st.session_state.messages.append({"role": "assistant", "content": response})
-    else:
-        st.warning("Please Enter A Prompt")
+    # Generate the assistant response using Groq API
+    with st.chat_message("assistant"):
+        try:
+            # Call the Groq API to get the assistant's response
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.messages
+                ],
+                model=st.session_state["groq_model"],
+            )
+
+            # Extract the assistant's message content
+            response = chat_completion.choices[0].message.content
+
+            # Display the assistant's response in the chat message container
+            st.markdown(response)
+            
+            # Add assistant's response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+        except Exception as e:
+            st.error(f"An error occurred: {e}")
