@@ -7,9 +7,8 @@ st.set_page_config(page_title="Simple ChatBot", layout="wide")
 st.title("✨ Simple ChatBot ✨")
 st.write("Powered by Google Generative AI")
 
-api_key = "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"
-
 # Initialize the Generative Model
+api_key = "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"  
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 # Function to get response from the model
@@ -17,50 +16,78 @@ def get_chatbot_response(user_input):
     response = model.generate_content(user_input)
     return response.text
 
+# Stream function to display assistant's response
+def display_assistant_response():
+    with st.chat_message("assistant"):
+        stream = model.generate_stream(  # Assuming there's a stream function in the API you're using
+            messages=[
+                {"role": m["role"], "content": m["content"]}
+                for m in st.session_state.messages
+            ],
+            stream=True,
+        )
+        response = "".join([msg for msg in stream])  # Collect and join streamed response
+        st.write(response)  # Display response
+        return response
+
 # Main content area
 st.header("Chat with the Bot")
 
-if "history" not in st.session_state:
-    st.session_state["history"] = []
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []  # Initialize message history
 
 # Display chat history after it's updated
-for user_message, bot_message in st.session_state.history:
-    st.markdown(f"""
-    <div style="
-        background-color: #800080; 
-        border-radius: 15px; 
-        padding: 10px 15px; 
-        margin: 5px 0; 
-        max-width: 70%; 
-        text-align: left; 
-        display: inline-block;
-    ">
-        <p style="margin: 0; font-size: 16px; line-height: 1.5;"><b>You:</b> {user_message} 😊</p>
-    </div>
-    """, unsafe_allow_html=True)
+for message in st.session_state.messages:
+    role = message["role"]
+    content = message["content"]
     
-    st.markdown(f"""
-    <div style="
-        background-color: #808080; 
-        border-radius: 15px; 
-        padding: 10px 15px; 
-        margin: 5px 0; 
-        max-width: 70%; 
-        text-align: left; 
-        display: inline-block;
-    ">
-        <p style="margin: 0; font-size: 16px; line-height: 1.5;"><b>Bot:</b> {bot_message} 🤖</p>
-    </div>
-    """, unsafe_allow_html=True)
+    if role == "user":
+        st.markdown(f"""
+        <div style="
+            background-color: #800080; 
+            border-radius: 15px; 
+            padding: 10px 15px; 
+            margin: 5px 0; 
+            max-width: 70%; 
+            text-align: left; 
+            display: inline-block;
+        ">
+            <p style="margin: 0; font-size: 16px; line-height: 1.5;"><b>You:</b> {content} 😊</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    if role == "assistant":
+        st.markdown(f"""
+        <div style="
+            background-color: #808080; 
+            border-radius: 15px; 
+            padding: 10px 15px; 
+            margin: 5px 0; 
+            max-width: 70%; 
+            text-align: left; 
+            display: inline-block;
+        ">
+            <p style="margin: 0; font-size: 16px; line-height: 1.5;"><b>Bot:</b> {content} 🤖</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 # Form for user input
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_input("Enter your message:", max_chars=2000, label_visibility="collapsed")  # Providing a hidden label
+    user_input = st.text_input("Enter your message:", max_chars=2000, label_visibility="collapsed")
     submit_button = st.form_submit_button("Send")
 
 if submit_button:
     if user_input:
-        response = get_chatbot_response(user_input)
-        st.session_state.history.append((user_input, response))
+        # Add user's message to session state
+        st.session_state.messages.append({"role": "user", "content": user_input})
+        
+        # Display user's message immediately
+        st.chat_message("user").write(user_input)
+        
+        # Get and display assistant's response
+        response = display_assistant_response()
+        
+        # Add assistant's message to session state
+        st.session_state.messages.append({"role": "assistant", "content": response})
     else:
         st.warning("Please Enter A Prompt")
